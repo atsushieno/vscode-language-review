@@ -1,0 +1,75 @@
+{
+    "name": "language-review",
+    "displayName": "Re:VIEW",
+    "description": "Re:VIEW language Support for Visual Studio Code.",
+    "version": "0.0.1",
+    "author": "Atsushi Eno",
+    "license": "MIT",
+    "publisher": "atsushieno",
+    "engines": {
+        "vscode": "^1.0.0"
+    },
+    "repository": {
+      "type": "git",
+      "url": "https://github.com/atsushieno/vscode-language-review.git"
+    },
+    "bugs": {
+      "url": "https://github.com/atsushieno/vscode-language-review/issues"
+    },
+    "categories": [
+      "Languages"
+    ],
+    "homepage": "https://github.com/atsushieno/vscode-language-review/blob/master/README.md",
+    "activationEvents": [
+      "onLanguage:review",
+      "onCommand:review.showPreview"
+    ],
+    "main": "./out/src/extension",
+    "contributes": {
+      "languages": [{
+          "id": "review",
+          "aliases": ["Re:VIEW", "review"],
+          "extensions": [".re"],
+          "configuration": "./review.configuration.json"
+      }],
+      "grammars": [{
+          "language": "review",
+          "scopeName": "text.review",
+          "path": "./syntaxes/review.tmLanguage"
+      }],
+      "commands": [{
+          "command": "review.showPreview",
+          "title": "Show preview",
+          "category": "review"
+        }, {
+          "command": "review.showSource",
+          "title": "Show source",
+          "category": "review"
+      }],
+      "menus": {
+        "editor/title": [{
+            "when": "resourceLangId == review",
+            "command": "review.showPreview",
+            "group": "navigation"
+        }],
+        "explorer/context": [{
+            "when": "resourceLangId == review",
+            "command": "review.showPreview",
+            "group": "navigation"
+        }]
+      }
+    },
+    "scripts": {
+      "vscode:prepublish": "node ./node_modules/vscode/bin/compile",
+      "compile": "node ./node_modules/vscode/bin/compile --sourcemap -watch -p ./",
+      "postinstall": "node ./node_modules/vscode/bin/install"
+    },
+    "devDependencies": {
+      "typescript": "^1.8.10",
+      "vscode": "^0.11.0"
+    },
+    "dependencies": {
+      "review.js": "0.12.1",
+      "reviewjs-prh": "0.1.10"
+    }
+}
