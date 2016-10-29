@@ -4,7 +4,7 @@
     "description": "Re:VIEW language Support for Visual Studio Code.",
     "version": "0.0.1",
     "author": "Atsushi Eno",
-    "license": "MIT",
+    "license": "Apache License Version 2.0",
     "publisher": "atsushieno",
     "engines": {
         "vscode": "^1.0.0"
