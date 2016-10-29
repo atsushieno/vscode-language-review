@@ -11,6 +11,7 @@ The extension features:
 # How to Build and Run when debugging this extension
 
 - Check out this repository.
+- Run `npm install` for the first build.
 - Launch VSCode, use "Open Folder" command to open this directory (that contains this README.md).
 - Type `F5` key.
 
