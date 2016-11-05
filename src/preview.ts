@@ -1,5 +1,6 @@
 'use strict';
 
+import * as path from 'path';
 import * as vscode from 'vscode';
 import * as review from 'review.js';
 
@@ -25,10 +26,12 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 	private render (document: vscode.TextDocument): string | Promise<string> {
 		let promise = new Promise ((resolve, rejected) => {
 			let src = document.getText ();
-			var files = { "whee.re": src };
+			var files = {};
 			var results = {};
+			files [path.basename (document.fileName)] = src;
 			review.start (controller => {
 				controller.initConfig ({
+					basePath: path.dirname (document.fileName),
 					read: path => Promise.resolve (files [path]),
 					//write: (path, content) => { results [path] = content; return Promise.resolve (null) }, 
 
@@ -58,7 +61,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 						}
 					},
 					builders: [ new review.HtmlBuilder (false) ],
-					book: { contents: [ "whee.re" ] }
+					book: { contents: [ path.basename (document.fileName) ] }
 				});
 			}).then (
 				buffer => {
