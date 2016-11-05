@@ -52,10 +52,6 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 								}
 							}
 						},
-
-						onCompileSuccess: function (book) {
-							vscode.window.showInformationMessage ("compilation successful.");
-						},
 						onCompileFailed: function () {
 							vscode.window.showInformationMessage ("compilation failure.");
 						}
