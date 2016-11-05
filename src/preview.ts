@@ -11,7 +11,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 
 	public provideTextDocumentContent (uri: vscode.Uri): string | Thenable<string> {
 		return vscode.workspace.openTextDocument (vscode.Uri.parse (uri.query)).then (doc => {
-			return this.render (doc);
+			return this.convert (doc);
 		});
 	}
 
@@ -23,7 +23,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 		this._onDidChange.fire (uri);
 	}
 
-	private render (document: vscode.TextDocument): string | Promise<string> {
+	private convert (document: vscode.TextDocument): string | Promise<string> {
 		let promise = new Promise ((resolve, rejected) => {
 			let src = document.getText ();
 			var files = {};
@@ -67,6 +67,8 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 				buffer => {
 					var result = "";
 					buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
+					if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
+						result = "<html><head><base href=\"" + document.fileName + "\" /></head><body>" + result + "</body></html>";
 					return resolve (result);
 				},
 				reason => rejected (reason)
@@ -82,14 +84,14 @@ function showPreview (uri: vscode.Uri) {
 			uri = vscode.window.activeTextEditor.document.uri;
 		}
 	}
-	return vscode.commands.executeCommand ('vscode.previewHtml', getRenderedUri (uri), vscode.ViewColumn.Two);
+	return vscode.commands.executeCommand ('vscode.previewHtml', getSpecialSchemeUri (uri), vscode.ViewColumn.Two);
 }
 
 export function activate (context : vscode.ExtensionContext) {
     let provider = new ReviewTextDocumentContentProvider ();
     vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
         if (event.document === vscode.window.activeTextEditor.document) {
-            provider.update (getRenderedUri (event.document.uri));
+            provider.update (getSpecialSchemeUri (event.document.uri));
         }
     });
     let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
@@ -97,7 +99,7 @@ export function activate (context : vscode.ExtensionContext) {
     context.subscriptions.push (d1, registration);
 }
 
-function getRenderedUri (uri: any): vscode.Uri {
+function getSpecialSchemeUri (uri: any): vscode.Uri {
 	return uri.with({
 		scheme: review_scheme,
 		path: uri.path,
