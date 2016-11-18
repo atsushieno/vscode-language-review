@@ -3,6 +3,7 @@
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as review from 'review.js';
+import * as reviewprh from 'reviewjs-prh';
 
 const review_scheme = "review";
 
@@ -32,25 +33,19 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 			review.start (controller => {
 				controller.initConfig ({
 					basePath: path.dirname (document.fileName),
+					validators: [new review.DefaultValidator(), new reviewprh.TextValidator(path.join (path.dirname (document.fileName), "prh.yml"))],
 					read: path => Promise.resolve (files [path]),
 					//write: (path, content) => { results [path] = content; return Promise.resolve (null) }, 
 
 					listener: {
 						// onAcceptables: ... ,
 						onReports: function (reports) {
+							var dc = Array.of<vscode.Diagnostic> ();
 							for (var i = 0; i < reports.length; i++) {
-								switch (reports [i].level) {
-								case review.ReportLevel.Error:
-									vscode.window.showErrorMessage (reports [i].message);
-									break;
-								case review.ReportLevel.Warning:
-									vscode.window.showWarningMessage (reports [i].message);
-									break;
-								case review.ReportLevel.Info:
-									vscode.window.showInformationMessage (reports [i].message);
-									break;
-								}
+								var loc = reports [i].nodes.length > 0 ? reports [i].nodes [0].location : null;
+								dc.push (new vscode.Diagnostic (locationToRange (loc), reports [i].message, reportLevelToSeverity (reports [i].level)));
 							}
+							vscode.languages.createDiagnosticCollection ("Re:VIEW validation").set (document.uri, dc);
 						},
 						onCompileFailed: function () {
 							vscode.window.showInformationMessage ("compilation failure.");
@@ -72,6 +67,21 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 		});
 		return promise;
 	}
+}
+
+function reportLevelToSeverity (level: review.ReportLevel): vscode.DiagnosticSeverity {
+	switch (level) {
+		case review.ReportLevel.Error: return vscode.DiagnosticSeverity.Error;
+		case review.ReportLevel.Info: return vscode.DiagnosticSeverity.Information;
+		case review.ReportLevel.Warning: return vscode.DiagnosticSeverity.Warning;
+	}
+	return vscode.DiagnosticSeverity.Information;
+}
+
+function locationToRange (loc: review.Location): vscode.Range {
+	return new vscode.Range (
+		new vscode.Position (loc.start.line - 1, loc.start.column - 1),
+		new vscode.Position (loc.end.line - 1, loc.end.column - 1));
 }
 
 function showPreview (uri: vscode.Uri) {
