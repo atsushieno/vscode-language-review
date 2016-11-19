@@ -8,6 +8,10 @@ The extension features:
 
 ![Live preview on edits](docs/images/sshot-preview.png)
 
+- Diagnostic reports on save and preview (using [reviews-prh](https://github.com/vvakame/reviewjs-prh/)).
+
+![Diagnostic reports on save and preview](docs/images/sshot-diagnostic.png)
+
 # How to Build and Run when debugging this extension
 
 - Check out this repository.

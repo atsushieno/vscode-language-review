@@ -26,35 +26,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 
 	private convert (document: vscode.TextDocument): string | Promise<string> {
 		let promise = new Promise ((resolve, rejected) => {
-			let src = document.getText ();
-			var files = {};
-			var results = {};
-			files [path.basename (document.fileName)] = src;
-			review.start (controller => {
-				controller.initConfig ({
-					basePath: path.dirname (document.fileName),
-					validators: [new review.DefaultValidator(), new reviewprh.TextValidator(path.join (path.dirname (document.fileName), "prh.yml"))],
-					read: path => Promise.resolve (files [path]),
-					//write: (path, content) => { results [path] = content; return Promise.resolve (null) }, 
-
-					listener: {
-						// onAcceptables: ... ,
-						onReports: function (reports) {
-							var dc = Array.of<vscode.Diagnostic> ();
-							for (var i = 0; i < reports.length; i++) {
-								var loc = reports [i].nodes.length > 0 ? reports [i].nodes [0].location : null;
-								dc.push (new vscode.Diagnostic (locationToRange (loc), reports [i].message, reportLevelToSeverity (reports [i].level)));
-							}
-							vscode.languages.createDiagnosticCollection ("Re:VIEW validation").set (document.uri, dc);
-						},
-						onCompileFailed: function () {
-							vscode.window.showInformationMessage ("compilation failure.");
-						}
-					},
-					builders: [ new review.HtmlBuilder (false) ],
-					book: { contents: [ path.basename (document.fileName) ] }
-				});
-			}).then (
+			validateDocument (document).then (
 				buffer => {
 					var result = "";
 					buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
@@ -93,6 +65,32 @@ function showPreview (uri: vscode.Uri) {
 	return vscode.commands.executeCommand ('vscode.previewHtml', getSpecialSchemeUri (uri), vscode.ViewColumn.Two);
 }
 
+function validateDocument (document: vscode.TextDocument): Promise<review.Book> {
+	return review.start (controller => {
+		controller.initConfig ({
+			basePath: path.dirname (document.fileName),
+			validators: [new review.DefaultValidator(), new reviewprh.TextValidator(path.join (path.dirname (document.fileName), "prh.yml"))],
+			read: path => Promise.resolve(document.getText()),
+			listener: {
+				// onAcceptables: ... ,
+				onReports: function (reports) {
+					var dc = Array.of<vscode.Diagnostic> ();
+					for (var i = 0; i < reports.length; i++) {
+						var loc = reports [i].nodes.length > 0 ? reports [i].nodes [0].location : null;
+						dc.push (new vscode.Diagnostic (locationToRange (loc), reports [i].message, reportLevelToSeverity (reports [i].level)));
+					}
+					vscode.languages.createDiagnosticCollection ("Re:VIEW validation").set (document.uri, dc);
+				},
+				onCompileFailed: function () {
+					vscode.window.showInformationMessage ("compilation failure.");
+				}
+			},
+			builders: [ new review.HtmlBuilder (false) ],
+			book: { contents: [ path.basename (document.fileName) ] }
+		});
+	})
+}
+
 export function activate (context : vscode.ExtensionContext) {
     let provider = new ReviewTextDocumentContentProvider ();
     vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
@@ -101,6 +99,7 @@ export function activate (context : vscode.ExtensionContext) {
         }
     });
     let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
+	vscode.workspace.onDidSaveTextDocument (e => { if (e.uri.scheme == review_scheme) validateDocument (e); });
     let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
     context.subscriptions.push (d1, registration);
 }
