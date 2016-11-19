@@ -73,9 +73,15 @@ var document_symbols: vscode.SymbolInformation[] = Array.of<vscode.SymbolInforma
 
 function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	return review.start (controller => {
+		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
+		var textval: reviewprh.TextValidator = null;
+		try {
+			textval = new reviewprh.TextValidator(prhFile);
+		} catch (any) {}
+		var validators = textval != null ? [new review.DefaultValidator(), textval] : [new review.DefaultValidator()];
 		controller.initConfig ({
 			basePath: path.dirname (document.fileName),
-			validators: [new review.DefaultValidator(), new reviewprh.TextValidator(path.join (path.dirname (document.fileName), "prh.yml"))],
+			validators: validators,
 			read: path => Promise.resolve(document.getText()),
 			listener: {
 				// onAcceptables: ... ,
@@ -92,9 +98,6 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 					}
 					vscode.languages.createDiagnosticCollection ("Re:VIEW validation").set (document.uri, dc);
 				},
-				onCompileFailed: function () {
-					vscode.window.showInformationMessage ("compilation failure.");
-				}
 			},
 			builders: [ new review.HtmlBuilder (false) ],
 			book: { contents: [ path.basename (document.fileName) ] }
