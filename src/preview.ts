@@ -7,8 +7,12 @@ import * as reviewprh from 'reviewjs-prh';
 
 const review_scheme = "review";
 
-class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentProvider {
+class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentProvider, vscode.DocumentSymbolProvider {
 	private _onDidChange = new vscode.EventEmitter<vscode.Uri> ();
+
+	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.SymbolInformation[] | Thenable<vscode.SymbolInformation[]> {
+		return processDocument (document).then (book => document_symbols);
+	}
 
 	public provideTextDocumentContent (uri: vscode.Uri): string | Thenable<string> {
 		return vscode.workspace.openTextDocument (vscode.Uri.parse (uri.query)).then (doc => {
@@ -26,7 +30,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 
 	private convert (document: vscode.TextDocument): string | Promise<string> {
 		let promise = new Promise ((resolve, rejected) => {
-			validateDocument (document).then (
+			processDocument (document).then (
 				buffer => {
 					var result = "";
 					buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
@@ -65,7 +69,9 @@ function showPreview (uri: vscode.Uri) {
 	return vscode.commands.executeCommand ('vscode.previewHtml', getSpecialSchemeUri (uri), vscode.ViewColumn.Two);
 }
 
-function validateDocument (document: vscode.TextDocument): Promise<review.Book> {
+var document_symbols: vscode.SymbolInformation[] = Array.of<vscode.SymbolInformation> ();
+
+function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	return review.start (controller => {
 		controller.initConfig ({
 			basePath: path.dirname (document.fileName),
@@ -73,6 +79,11 @@ function validateDocument (document: vscode.TextDocument): Promise<review.Book> 
 			read: path => Promise.resolve(document.getText()),
 			listener: {
 				// onAcceptables: ... ,
+				onSymbols: function (symbols) {
+					document_symbols = symbols.filter (src => src.labelName !== undefined).map<vscode.SymbolInformation> ((src, idx, arr) => {
+						return new vscode.SymbolInformation (src.labelName, vscode.SymbolKind.Null, locationToRange (src.node.location), document.uri, "Re:View Index");
+					});
+				},
 				onReports: function (reports) {
 					var dc = Array.of<vscode.Diagnostic> ();
 					for (var i = 0; i < reports.length; i++) {
@@ -88,7 +99,20 @@ function validateDocument (document: vscode.TextDocument): Promise<review.Book> 
 			builders: [ new review.HtmlBuilder (false) ],
 			book: { contents: [ path.basename (document.fileName) ] }
 		});
-	})
+	});
+}
+
+function maybeProcessDocument (document: vscode.TextDocument) {
+	if (document.uri.scheme == review_scheme)
+		processDocument (document);
+}
+
+function getSpecialSchemeUri (uri: any): vscode.Uri {
+	return uri.with({
+		scheme: review_scheme,
+		path: uri.path,
+		query: uri.toString ()
+	});
 }
 
 export function activate (context : vscode.ExtensionContext) {
@@ -99,17 +123,11 @@ export function activate (context : vscode.ExtensionContext) {
         }
     });
     let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
-	vscode.workspace.onDidSaveTextDocument (e => { if (e.uri.scheme == review_scheme) validateDocument (e); });
+    vscode.languages.registerDocumentSymbolProvider (review_scheme, provider);
+	vscode.workspace.onDidOpenTextDocument (maybeProcessDocument);
+	vscode.workspace.onDidSaveTextDocument (maybeProcessDocument);
     let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
     context.subscriptions.push (d1, registration);
-}
-
-function getSpecialSchemeUri (uri: any): vscode.Uri {
-	return uri.with({
-		scheme: review_scheme,
-		path: uri.path,
-		query: uri.toString ()
-	});
 }
 
 export function deactivate () {

@@ -12,6 +12,10 @@ The extension features:
 
 ![Diagnostic reports on save and preview](docs/images/sshot-diagnostic.png)
 
+- List document sections and jump to them.
+
+![List document sections and jump to them](docs/images/sshot-structure.png)
+
 # How to Build and Run when debugging this extension
 
 - Check out this repository.
