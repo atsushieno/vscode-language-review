@@ -119,18 +119,18 @@ function getSpecialSchemeUri (uri: any): vscode.Uri {
 }
 
 export function activate (context : vscode.ExtensionContext) {
-    let provider = new ReviewTextDocumentContentProvider ();
-    vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
-        if (event.document === vscode.window.activeTextEditor.document) {
-            provider.update (getSpecialSchemeUri (event.document.uri));
-        }
-    });
-    let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
-    vscode.languages.registerDocumentSymbolProvider (review_scheme, provider);
+	let provider = new ReviewTextDocumentContentProvider ();
+	vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
+		if (event.document === vscode.window.activeTextEditor.document) {
+			provider.update (getSpecialSchemeUri (event.document.uri));
+		}
+	});
+	let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
+	vscode.languages.registerDocumentSymbolProvider (review_scheme, provider);
 	vscode.workspace.onDidOpenTextDocument (maybeProcessDocument);
 	vscode.workspace.onDidSaveTextDocument (maybeProcessDocument);
-    let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
-    context.subscriptions.push (d1, registration);
+	let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
+	context.subscriptions.push (d1, registration);
 }
 
 export function deactivate () {
