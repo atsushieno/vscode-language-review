@@ -29,7 +29,7 @@ Check out [github issues](https://github.com/atsushieno/vscode-language-review/i
 
 # License
 
-The primary license is MIT (see [LICENSE.md](LICENSE.md). Note that this repository and the extension binary package also contain third-party sources, namely:
+The primary license is MIT (see [LICENSE.md](LICENSE.md)). Note that this repository and the extension binary package also contain third-party sources, namely:
 
 - syntaxes/review.tmLanguage is taken from [yanzm/ReVIEW](https://github.com/yanzm/ReVIEW), Apache License Version 2.0
 - review.js, packaged in the binary distribution of this extension, is taken from [vvakame/review.js](https://github.com/vvakame/review.js), MIT License.
