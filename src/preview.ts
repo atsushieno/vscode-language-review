@@ -1,5 +1,6 @@
 'use strict';
 
+import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as review from 'review.js';
@@ -76,7 +77,8 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
 		var textval: reviewprh.TextValidator = null;
 		try {
-			textval = new reviewprh.TextValidator(prhFile);
+			if (fs.exists (prhFile))
+				textval = new reviewprh.TextValidator(prhFile);
 		} catch (any) {}
 		var validators = textval != null ? [new review.DefaultValidator(), textval] : [new review.DefaultValidator()];
 		controller.initConfig ({
