@@ -85,6 +85,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 			basePath: path.dirname (document.fileName),
 			validators: validators,
 			read: path => Promise.resolve(document.getText()),
+			write: (path, data) => Promise.resolve(void {}),
 			listener: {
 				// onAcceptables: ... ,
 				onSymbols: function (symbols) {
