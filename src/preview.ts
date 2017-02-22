@@ -75,12 +75,12 @@ var document_symbols: vscode.SymbolInformation[] = Array.of<vscode.SymbolInforma
 function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	return review.start (controller => {
 		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
-		var textval: reviewprh.TextValidator = null;
+		var validators: review.Validator[];
 		try {
-			if (fs.exists (prhFile))
-				textval = new reviewprh.TextValidator(prhFile);
-		} catch (any) {}
-		var validators = textval != null ? [new review.DefaultValidator(), textval] : [new review.DefaultValidator()];
+			validators = [new review.DefaultValidator(), new reviewprh.TextValidator(prhFile)];
+		} catch (any) {
+			validators = [new review.DefaultValidator()];
+		}
 		controller.initConfig ({
 			basePath: path.dirname (document.fileName),
 			validators: validators,
