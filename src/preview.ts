@@ -38,7 +38,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 					var result = "";
 					buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
 					if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
-						result = "<html><head><base href=\"" + document.fileName + "\" /></head><body>" + result + "</body></html>";
+						result = "<html><head><base href=\"" + document.fileName + "\" /><style type='text/css'>body { color: black; background-color: white }</style></head><body>" + result + "</body></html>";
 					return resolve (result);
 				},
 				reason => rejected (reason)
