@@ -16,8 +16,10 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 	}
 
 	public provideTextDocumentContent (uri: vscode.Uri): string | Thenable<string> {
-		return vscode.workspace.openTextDocument (vscode.Uri.parse (uri.query)).then (doc => {
-			return this.convert (doc);
+		return new Promise<string> ((resolve, reject) => {
+			vscode.workspace.openTextDocument (vscode.Uri.parse (uri.query))
+			.then (doc => resolve (this.convert (doc)),
+			reason => reject (reason))
 		});
 	}
 
@@ -29,8 +31,8 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 		this._onDidChange.fire (uri);
 	}
 
-	private convert (document: vscode.TextDocument): string | Promise<string> {
-		let promise = new Promise ((resolve, rejected) => {
+	private convert (document: vscode.TextDocument): Promise<string> {
+		return new Promise<string> ((resolve, rejected) => {
 			processDocument (document).then (
 				buffer => {
 					var result = "";
@@ -42,7 +44,6 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 				reason => rejected (reason)
 			);
 		});
-		return promise;
 	}
 }
 
@@ -103,7 +104,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 				},
 			},
 			builders: [ new review.HtmlBuilder (false) ],
-			book: { contents: [ path.basename (document.fileName) ] }
+			book: { contents: [{file: path.basename (document.fileName)}] }
 		});
 	});
 }
@@ -133,7 +134,8 @@ export function activate (context : vscode.ExtensionContext) {
 	vscode.workspace.onDidOpenTextDocument (maybeProcessDocument);
 	vscode.workspace.onDidSaveTextDocument (maybeProcessDocument);
 	let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
-	context.subscriptions.push (d1, registration);
+	let d2 = vscode.commands.registerCommand ("review.checkSyntax", uri => maybeProcessDocument (vscode.window.activeTextEditor.document));
+	context.subscriptions.push (d1, d2, registration);
 }
 
 export function deactivate () {
