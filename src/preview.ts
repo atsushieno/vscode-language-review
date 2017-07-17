@@ -1,15 +1,31 @@
 'use strict';
 
 import * as fs from 'fs';
+import * as events from 'events';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import * as rx from 'rx-lite';
 import * as review from 'review.js';
 import * as reviewprh from 'reviewjs-prh';
 
 const review_scheme = "review";
 
-class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentProvider, vscode.DocumentSymbolProvider {
+class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentProvider, vscode.DocumentSymbolProvider, vscode.Disposable {
 	private _onDidChange = new vscode.EventEmitter<vscode.Uri> ();
+	private _emitter = new events.EventEmitter ();
+	private _subscription = rx.Observable.fromEvent<vscode.TextDocumentChangeEvent> (this._emitter, "data")
+		.sample (rx.Observable.interval (1000))
+		.subscribe (event => {
+			if (event.document === vscode.window.activeTextEditor.document) {
+				this.update (getSpecialSchemeUri (event.document.uri));
+			}
+		});
+
+	public constructor () {
+		vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
+			this._emitter.emit ("data", event)
+		});
+	}
 
 	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.SymbolInformation[] | Thenable<vscode.SymbolInformation[]> {
 		return processDocument (document).then (book => document_symbols);
@@ -25,6 +41,10 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 
 	get onDidChange(): vscode.Event<vscode.Uri> {
 		return this._onDidChange.event;
+	}
+
+	public dispose () {
+		this._subscription.unsubscribe ();
 	}
 
 	public update (uri: vscode.Uri) {
@@ -124,18 +144,13 @@ function getSpecialSchemeUri (uri: any): vscode.Uri {
 
 export function activate (context : vscode.ExtensionContext) {
 	let provider = new ReviewTextDocumentContentProvider ();
-	vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
-		if (event.document === vscode.window.activeTextEditor.document) {
-			provider.update (getSpecialSchemeUri (event.document.uri));
-		}
-	});
 	let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
 	vscode.languages.registerDocumentSymbolProvider (review_scheme, provider);
 	vscode.workspace.onDidOpenTextDocument (maybeProcessDocument);
 	vscode.workspace.onDidSaveTextDocument (maybeProcessDocument);
 	let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
 	let d2 = vscode.commands.registerCommand ("review.checkSyntax", uri => maybeProcessDocument (vscode.window.activeTextEditor.document));
-	context.subscriptions.push (d1, d2, registration);
+	context.subscriptions.push (d1, d2, registration, provider);
 }
 
 export function deactivate () {
