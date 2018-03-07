@@ -35,3 +35,7 @@ The primary license is MIT (see [LICENSE.md](LICENSE.md)). Note that this reposi
 - review.js, packaged in the binary distribution of this extension, is taken from [vvakame/review.js](https://github.com/vvakame/review.js), MIT License.
 - reviewjs-prh, packaged in the binary distribution of this extension, is taken from [vvakame/reviewjs-prh](https://github.com/vvakame/reviewjs-prh), MIT License.
 - and all the subsequent dependencies are packaged in the extension too.
+
+# Other projects
+
+- https://github.com/erukiti/ya-language-review also provides Re:VIEW preview and diagnostic features. It runs `review` locally (while my extension is based on review.js) so you can get the very latest features, in case you need them.
