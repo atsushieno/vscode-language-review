@@ -110,9 +110,18 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 			listener: {
 				// onAcceptables: ... ,
 				onSymbols: function (symbols) {
-					document_symbols = symbols.filter (src => src.labelName !== undefined).map<vscode.SymbolInformation> ((src, idx, arr) => {
-						return new vscode.SymbolInformation (src.labelName, vscode.SymbolKind.Null, locationToRange (src.node.location), document.uri, "Re:View Index");
-					});
+					document_symbols = symbols.map<vscode.SymbolInformation> ((src, idx, arr) => {
+						switch (src.symbolName) {
+							case "hd":
+								return new vscode.SymbolInformation (src.labelName, vscode.SymbolKind.Null, locationToRange (src.node.location), document.uri, "Re:View Index");
+								break;
+							case "column":
+								return new vscode.SymbolInformation ("[column] " + src.node.toColumn().headline.caption.childNodes[0].toTextNode().text, vscode.SymbolKind.Null, locationToRange (src.node.location), document.uri, "Re:View Index");
+								break;
+							default:
+								return undefined;
+						}
+					}).filter(ret => ret !== undefined);
 				},
 				onReports: function (reports) {
 					var dc = Array.of<vscode.Diagnostic> ();
