@@ -2,7 +2,7 @@
     "name": "language-review",
     "displayName": "Re:VIEW",
     "description": "Re:VIEW language Support for Visual Studio Code.",
-    "version": "0.4.4",
+    "version": "0.4.3",
     "author": "Atsushi Eno",
     "license": "Apache License Version 2.0",
     "publisher": "atsushieno",
@@ -66,7 +66,7 @@
     },
     "devDependencies": {
       "typescript": "^2.0.3",
-      "vscode": "^1.1.18",
+      "vscode": "^1.1.2",
       "mocha": "^2.3.3",
       "@types/node": "^8.0.0",
       "@types/mocha": "^2.2.32"
