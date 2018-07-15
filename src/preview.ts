@@ -27,7 +27,7 @@ class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentPro
 		});
 	}
 
-	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.SymbolInformation[] | Thenable<vscode.DocumentSymbol[]> {
+	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.SymbolInformation[] | Thenable<vscode.SymbolInformation[]> {
 		return processDocument (document).then (book => document_symbols);
 	}
 
@@ -91,13 +91,7 @@ function showPreview (uri: vscode.Uri) {
 	return vscode.commands.executeCommand ('vscode.previewHtml', getSpecialSchemeUri (uri), vscode.ViewColumn.Two);
 }
 
-var document_symbols: vscode.DocumentSymbol[] = Array.of<vscode.DocumentSymbol> ();
-
-interface ReviewSymbol {
-	readonly level: number;
-	readonly parent: ReviewSymbol | undefined;
-	readonly children: vscode.DocumentSymbol[]
-}
+var document_symbols: vscode.SymbolInformation[] = Array.of<vscode.SymbolInformation> ();
 
 function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	return review.start (controller => {
@@ -116,55 +110,16 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 			listener: {
 				// onAcceptables: ... ,
 				onSymbols: function (symbols) {
-					function organizeSymbols (parent: ReviewSymbol, symbols: review.Symbol[]) {
-						if (!symbols.length) {
-							return;
-						}
-
-						let symbol = symbols[0];
-						let docSymbol = new vscode.DocumentSymbol (
-							getLabelName (symbol), "", vscode.SymbolKind.Null, locationToRange (symbol.node.location), locationToRange (symbol.node.location));
-						let level = extractLevel (symbol);
-						if (docSymbol === undefined || level === -Infinity) {
-							return;
-						}
-						docSymbol.children = [];
-						while (parent && level <= parent.level) {
-							parent = parent.parent!;
-						}
-						parent.children.push (docSymbol);
-						organizeSymbols ({level, children: docSymbol.children, parent}, symbols.slice (1));
-					}
-
-					function extractLevel (src: review.Symbol): number {
+					document_symbols = symbols.map<vscode.SymbolInformation> ((src, idx, arr) => {
 						switch (src.symbolName) {
 							case "hd":
-								return src.node.toHeadline ().level;
+								return new vscode.SymbolInformation (src.labelName, vscode.SymbolKind.Null, locationToRange (src.node.location), document.uri, "Re:View Index");
 							case "column":
-								return src.node.toColumn ().level;
-							default:
-								return -Infinity;
-						}
-					}
-
-					function getLabelName (src: review.Symbol): string {
-						switch (src.symbolName) {
-							case "hd":
-								return src.labelName;
-							case "column":
-								return "[column] " + src.node.toColumn ().headline.caption.childNodes[0].toTextNode ().text;
+								return new vscode.SymbolInformation ("[column] " + src.node.toColumn().headline.caption.childNodes[0].toTextNode().text, vscode.SymbolKind.Null, locationToRange (src.node.location), document.uri, "Re:View Index");
 							default:
 								return undefined;
 						}
-					}
-
-					const root: ReviewSymbol = {
-						level: -Infinity,
-						children: [],
-						parent: undefined
-					};
-					organizeSymbols (root, symbols.filter (o => o.symbolName === "hd" || o.symbolName === "column"));
-					document_symbols = root.children;
+					}).filter(ret => ret !== undefined);
 				},
 				onReports: function (reports) {
 					var dc = Array.of<vscode.Diagnostic> ();
