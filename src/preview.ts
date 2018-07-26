@@ -138,10 +138,10 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 					}
 
 					function extractLevel (src: review.Symbol): number {
-						switch (src.symbolName) {
-							case "hd":
+						switch (src.node.ruleName) {
+							case review.RuleName.Headline:
 								return src.node.toHeadline ().level;
-							case "column":
+							case review.RuleName.Column:
 								return src.node.toColumn ().level;
 							default:
 								return -Infinity;
@@ -149,10 +149,10 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 					}
 
 					function getLabelName (src: review.Symbol): string {
-						switch (src.symbolName) {
-							case "hd":
+						switch (src.node.ruleName) {
+							case review.RuleName.Headline:
 								return src.labelName;
-							case "column":
+							case review.RuleName.Column:
 								return "[column] " + src.node.toColumn ().headline.caption.childNodes[0].toTextNode ().text;
 							default:
 								return undefined;
