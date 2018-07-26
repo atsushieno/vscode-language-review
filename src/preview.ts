@@ -164,7 +164,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						children: [],
 						parent: undefined
 					};
-					organizeSymbols (root, symbols.filter (o => !o.node.isInlineElement() && o.symbolName === "hd" || o.symbolName === "column"));
+					organizeSymbols (root, symbols.filter (o => !o.node.isInlineElement() && (o.symbolName === "hd" || o.symbolName === "column")));
 					document_symbols = root.children;
 				},
 				onReports: function (reports) {
