@@ -92,6 +92,7 @@ function showPreview (uri: vscode.Uri) {
 }
 
 var document_symbols: vscode.SymbolInformation[] = Array.of<vscode.SymbolInformation> ();
+var last_diagnostics: vscode.DiagnosticCollection = null;
 
 function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	return review.start (controller => {
@@ -127,7 +128,10 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						var loc = reports [i].nodes.length > 0 ? reports [i].nodes [0].location : null;
 						dc.push (new vscode.Diagnostic (locationToRange (loc), reports [i].message, reportLevelToSeverity (reports [i].level)));
 					}
-					vscode.languages.createDiagnosticCollection ("Re:VIEW validation").set (document.uri, dc);
+					if (last_diagnostics != null)
+						last_diagnostics.dispose ();
+					last_diagnostics = vscode.languages.createDiagnosticCollection ("Re:VIEW validation");
+					last_diagnostics.set (document.uri, dc);
 				},
 			},
 			builders: [ new review.HtmlBuilder (false) ],
