@@ -101,6 +101,15 @@ interface ReviewSymbol {
 }
 
 function processDocument (document: vscode.TextDocument): Promise<review.Book> {
+	var getEOLPosition = (line: number): vscode.Position => document.lineAt (line).range.end;
+
+	function getPositionJustBefore (pos: vscode.Position): vscode.Position {
+		if (pos.line === 0 && pos.character === 0) {
+			return new vscode.Position (0, 0);
+		}
+		return pos.character === 0 ? getEOLPosition (pos.line - 1) : new vscode.Position (pos.line, pos.character - 1);
+	}
+
 	return review.start (controller => {
 		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
 		var validators: review.Validator[];
@@ -123,8 +132,11 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						}
 
 						let symbol = symbols[0];
+						// Uses `detail` to distinguish columns from headlines.
+						// It's a bit dirty hack but it's needed to avoid 2-pass scan.
+						// Uutilizing vscode.SymbolKind is an alternative but cannot fill a concept gap anyway.
 						let docSymbol = new vscode.DocumentSymbol (
-							getLabelName (symbol), "", vscode.SymbolKind.Null, locationToRange (symbol.node.location), locationToRange (symbol.node.location));
+							getLabelName (symbol), getLabelDetail (symbol), vscode.SymbolKind.Null, locationToRange (symbol.node.location), locationToRange (symbol.node.location));
 						let level = extractLevel (symbol);
 						if (docSymbol === undefined || level === -Infinity) {
 							return;
@@ -132,9 +144,26 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						docSymbol.children = [];
 						while (parent && level <= parent.level) {
 							parent = parent.parent!;
+							// Adjust end marker on level change
+							if (parent.children.length !== 0) {
+								let lastChild = parent.children[parent.children.length - 1];
+								// columns themselves have correct end markers so DON'T perform adjustment
+								if (lastChild.detail !== 'column') {
+									lastChild.range = new vscode.Range (lastChild.range.start, getPositionJustBefore (docSymbol.range.start));
+								}
+							}
 						}
 						parent.children.push (docSymbol);
 						organizeSymbols ({level, children: docSymbol.children, parent}, symbols.slice (1));
+						if (symbols.length === 1) {
+							// symbols exhausted. i.e. document ended. Put `end` markers for all "opened" DocumentSymbols for building Breadcrumbs.
+							var p = parent;
+							while (p.parent !== undefined) {
+								let lastElem = p.parent!.children[p.parent!.children.length - 1];
+								lastElem.range = new vscode.Range (lastElem.range.start, docSymbol.range.end);
+								p = p.parent;
+							}
+						}
 					}
 
 					function extractLevel (src: review.Symbol): number {
@@ -159,6 +188,16 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						}
 					}
 
+					function getLabelDetail (src: review.Symbol): string {
+						switch (src.node.ruleName) {
+							case review.RuleName.Headline:
+								return "headline";
+							case review.RuleName.Column:
+								return "column";
+							default:
+								return undefined;
+						}
+					}
 					const root: ReviewSymbol = {
 						level: -Infinity,
 						children: [],
