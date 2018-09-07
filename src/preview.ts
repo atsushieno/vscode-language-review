@@ -141,6 +141,10 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						if (docSymbol === undefined || level === -Infinity) {
 							return;
 						}
+						if (docSymbol.detail === 'column') {
+							// Adjust column ending position because review.js returns the one overlaps with the next element.
+							docSymbol.range = new vscode.Range (docSymbol.range.start, getPositionJustBefore (docSymbol.range.end));
+						}
 						docSymbol.children = [];
 						while (parent && level <= parent.level) {
 							parent = parent.parent!;
@@ -157,10 +161,16 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						organizeSymbols ({level, children: docSymbol.children, parent}, symbols.slice (1));
 						if (symbols.length === 1) {
 							// symbols exhausted. i.e. document ended. Put `end` markers for all "opened" DocumentSymbols for building Breadcrumbs.
+							let endOfDocumentPos = getEOLPosition (document.lineCount - 1);
+							// First, adjust range of the last symbol because non-column symbols don't have correct ending positions yet.
+							if (getLabelDetail (symbol) !== 'column') {
+								docSymbol.range = new vscode.Range (docSymbol.range.start, endOfDocumentPos);
+							}
+							// Then, propagate ending position to ancestors.
 							var p = parent;
 							while (p.parent !== undefined) {
 								let lastElem = p.parent!.children[p.parent!.children.length - 1];
-								lastElem.range = new vscode.Range (lastElem.range.start, docSymbol.range.end);
+								lastElem.range = new vscode.Range (lastElem.range.start, endOfDocumentPos);
 								p = p.parent;
 							}
 						}
