@@ -7,64 +7,43 @@ import * as vscode from 'vscode';
 import * as rx from 'rx-lite';
 import * as review from 'review.js';
 import * as reviewprh from 'reviewjs-prh';
+import { clearTimeout } from 'timers';
 
 const review_scheme = "review";
 
-class ReviewTextDocumentContentProvider implements vscode.TextDocumentContentProvider, vscode.DocumentSymbolProvider, vscode.Disposable {
-	private _onDidChange = new vscode.EventEmitter<vscode.Uri> ();
-	private _emitter = new events.EventEmitter ();
-	private _subscription = rx.Observable.fromEvent<vscode.TextDocumentChangeEvent> (this._emitter, "data")
-		.sample (rx.Observable.interval (1000))
-		.subscribe (event => {
-			if (event.document === vscode.window.activeTextEditor.document) {
-				this.update (getSpecialSchemeUri (event.document.uri));
-			}
-		});
+class ReviewSymbolProvider implements vscode.DocumentSymbolProvider, vscode.Disposable {
 
-	public constructor () {
-		vscode.workspace.onDidChangeTextDocument ((event: vscode.TextDocumentChangeEvent) => {
-			this._emitter.emit ("data", event)
-		});
+	public constructor () {}
+
+	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.SymbolInformation[] | Thenable<vscode.DocumentSymbol[]>
+	{
+		// FIXME: uncomment this and get it working
+		// (it does not, because it is most likely invoked way before processDocument() completes and updates the symbols).
+		// This should not trigger processDocument every time vscode requests symbols (it invokes this method for every change)
+		//if (document_symbols == null)
+			return processDocument (document).then (_ => document_symbols, _ => document_symbols);
+		//else
+		//	Promise.resolve (document_symbols);
 	}
 
-	public provideDocumentSymbols(document: vscode.TextDocument, token: vscode.CancellationToken): vscode.SymbolInformation[] | Thenable<vscode.DocumentSymbol[]> {
-		return processDocument (document).then (book => document_symbols);
+	public dispose ()
+	{
 	}
+}
 
-	public provideTextDocumentContent (uri: vscode.Uri): string | Thenable<string> {
-		return new Promise<string> ((resolve, reject) => {
-			vscode.workspace.openTextDocument (vscode.Uri.parse (uri.query))
-			.then (doc => resolve (this.convert (doc)),
-			reason => reject (reason))
-		});
-	}
-
-	get onDidChange(): vscode.Event<vscode.Uri> {
-		return this._onDidChange.event;
-	}
-
-	public dispose () {
-		this._subscription.unsubscribe ();
-	}
-
-	public update (uri: vscode.Uri) {
-		this._onDidChange.fire (uri);
-	}
-
-	private convert (document: vscode.TextDocument): Promise<string> {
-		return new Promise<string> ((resolve, rejected) => {
-			processDocument (document).then (
-				buffer => {
-					var result = "";
-					buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
-					if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
-						result = "<html><head><base href=\"" + document.fileName + "\" /><style type='text/css'>body { color: black; background-color: white }</style></head><body>" + result + "</body></html>";
-					return resolve (result);
-				},
-				reason => rejected (reason)
-			);
-		});
-	}
+function convert_review_doc_to_html (document: vscode.TextDocument): Promise<string> {
+	return new Promise<string> ((resolve, rejected) => {
+		processDocument (document).then (
+			buffer => {
+				var result = "";
+				buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
+				if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
+					result = "<html><head><base href=\"" + document.fileName + "\" /><style type='text/css'>body { color: black; background-color: white }</style></head><body>" + result + "</body></html>";
+				return resolve (result);
+			},
+			reason => rejected (reason)
+		);
+	});
 }
 
 function reportLevelToSeverity (level: review.ReportLevel): vscode.DiagnosticSeverity {
@@ -82,22 +61,19 @@ function locationToRange (loc: review.Location): vscode.Range {
 		new vscode.Position (loc.end.line - 1, loc.end.column - 1));
 }
 
-function showPreview (uri: vscode.Uri) {
-	if (!(uri instanceof vscode.Uri)) {
-		if (vscode.window.activeTextEditor) {
-			uri = vscode.window.activeTextEditor.document.uri;
-		}
-	}
-	return vscode.commands.executeCommand ('vscode.previewHtml', getSpecialSchemeUri (uri), vscode.ViewColumn.Two);
-}
-
-var document_symbols: vscode.DocumentSymbol[] = Array.of<vscode.DocumentSymbol> ();
+var document_symbols: vscode.DocumentSymbol[] = null;
 var last_diagnostics: vscode.DiagnosticCollection = null;
 
 interface ReviewSymbol {
 	readonly level: number;
 	readonly parent: ReviewSymbol | undefined;
 	readonly children: vscode.DocumentSymbol[]
+}
+
+function maybeProcessDocument (document: vscode.TextDocument): Promise<review.Book> {
+	if (document.uri.scheme != review_scheme)
+		return;
+	return processDocument (document);
 }
 
 function processDocument (document: vscode.TextDocument): Promise<review.Book> {
@@ -234,28 +210,52 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	});
 }
 
-function maybeProcessDocument (document: vscode.TextDocument) {
-	if (document.uri.scheme == review_scheme)
-		processDocument (document);
-}
+var previews = new Map<string,vscode.WebviewPanel> ();
 
-function getSpecialSchemeUri (uri: any): vscode.Uri {
-	return uri.with({
-		scheme: review_scheme,
-		path: uri.path,
-		query: uri.toString ()
+function startPreview (uri: vscode.Uri, context: vscode.ExtensionContext) {
+	if (!(uri instanceof vscode.Uri)) {
+		if (vscode.window.activeTextEditor) {
+			uri = vscode.window.activeTextEditor.document.uri;
+		}
+	}
+
+	var webView = vscode.window.createWebviewPanel ('vscode-language-review', "[preview]" + path.basename(uri.path), vscode.ViewColumn.Two);
+	previews.set(uri.fsPath, webView);
+	var doc = vscode.workspace.textDocuments.find((d,_,__) => d.uri.fsPath == uri.fsPath);
+	convert_review_doc_to_html(doc).then (
+		successResult => webView.webview.html = successResult,
+		failureReason => webView.webview.html = failureReason);
+
+	var last_changed_event: vscode.TextDocumentChangeEvent = null;
+	var timer = setInterval(() => maybeUpdatePreview (last_changed_event), 1000);
+	vscode.workspace.onDidChangeTextDocument (e => last_changed_event = e);
+
+	webView.onDidDispose(()=> {
+		clearInterval (timer);
+		this._webViewPanel = null;
 	});
 }
 
+function maybeUpdatePreview (e: vscode.TextDocumentChangeEvent) {
+	if (e == null || e.document.uri == null)
+		return;
+	var webView = previews.get(e.document.uri.fsPath);
+	if (webView == null)
+		return;
+	convert_review_doc_to_html (e.document).then (
+		successResult => webView.webview.html = successResult,
+		failureReason => webView.webview.html = failureReason);
+}
+
 export function activate (context : vscode.ExtensionContext) {
-	let provider = new ReviewTextDocumentContentProvider ();
-	let registration = vscode.workspace.registerTextDocumentContentProvider (review_scheme, provider);
+	let provider = new ReviewSymbolProvider ();
 	vscode.languages.registerDocumentSymbolProvider (review_scheme, provider);
+
 	vscode.workspace.onDidOpenTextDocument (maybeProcessDocument);
 	vscode.workspace.onDidSaveTextDocument (maybeProcessDocument);
-	let d1 = vscode.commands.registerCommand ("review.showPreview", uri => showPreview (uri), vscode.ViewColumn.Two);
-	let d2 = vscode.commands.registerCommand ("review.checkSyntax", uri => maybeProcessDocument (vscode.window.activeTextEditor.document));
-	context.subscriptions.push (d1, d2, registration, provider);
+	let d1 = vscode.commands.registerCommand ("review.showPreview", uri => startPreview (uri, context));
+	let d2 = vscode.commands.registerCommand ("review.checkSyntax", uri => processDocument (vscode.window.activeTextEditor.document));
+	context.subscriptions.push (d1, d2, provider);
 }
 
 export function deactivate () {
