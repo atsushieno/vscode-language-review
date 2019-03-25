@@ -31,18 +31,20 @@ class ReviewSymbolProvider implements vscode.DocumentSymbolProvider, vscode.Disp
 	}
 }
 
-function convert_review_doc_to_html (document: vscode.TextDocument): Promise<string> {
+function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri: (...relPath: string[]) => vscode.Uri): Promise<string> {
 	return new Promise<string> ((resolve, rejected) => {
 		processDocument (document).then (
 			buffer => {
 				var result = "";
 				buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
 				if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
-					result = "<html><head><base href=\"" + document.fileName + "\" /><style type='text/css'>body { color: black; background-color: white }</style></head><body>" + result + "</body></html>";
+					result = "<html><head><base href=\"" + document.fileName + "\" />" + getStyleTag() + "</head><body>" + result + "</body></html>";
 				return resolve (result);
 			},
 			reason => rejected (reason)
 		);
+
+		var getStyleTag = (): string => `<link rel="stylesheet" type="text/css" href="${getAssetUri('media', 'style.css')}">`;
 	});
 }
 
@@ -222,12 +224,14 @@ function startPreview (uri: vscode.Uri, context: vscode.ExtensionContext) {
 	var webView = vscode.window.createWebviewPanel ('vscode-language-review', "[preview]" + path.basename(uri.path), vscode.ViewColumn.Two);
 	previews.set(uri.fsPath, webView);
 	var doc = vscode.workspace.textDocuments.find((d,_,__) => d.uri.fsPath == uri.fsPath);
-	convert_review_doc_to_html(doc).then (
+	var getAssetUri = (...relPath: string[]) =>
+	    vscode.Uri.file (path.join (context.extensionPath, ...relPath)).with ({ scheme: 'vscode-resource' });
+	convert_review_doc_to_html(doc, getAssetUri).then (
 		successResult => webView.webview.html = successResult,
 		failureReason => webView.webview.html = failureReason);
 
 	var last_changed_event: vscode.TextDocumentChangeEvent = null;
-	var timer = setInterval(() => maybeUpdatePreview (last_changed_event), 1000);
+	var timer = setInterval(() => maybeUpdatePreview (last_changed_event, getAssetUri), 1000);
 	vscode.workspace.onDidChangeTextDocument (e => last_changed_event = e);
 
 	webView.onDidDispose(()=> {
@@ -236,13 +240,13 @@ function startPreview (uri: vscode.Uri, context: vscode.ExtensionContext) {
 	});
 }
 
-function maybeUpdatePreview (e: vscode.TextDocumentChangeEvent) {
+function maybeUpdatePreview (e: vscode.TextDocumentChangeEvent, f: (...path: string[]) => vscode.Uri) {
 	if (e == null || e.document.uri == null)
 		return;
 	var webView = previews.get(e.document.uri.fsPath);
 	if (webView == null)
 		return;
-	convert_review_doc_to_html (e.document).then (
+	convert_review_doc_to_html (e.document, f).then (
 		successResult => webView.webview.html = successResult,
 		failureReason => webView.webview.html = failureReason);
 }
