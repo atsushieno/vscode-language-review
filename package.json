@@ -73,7 +73,7 @@
     },
     "dependencies": {
       "rx-lite": "4.0.8",
-      "review.js": "0.12.2",
-      "reviewjs-prh": "0.1.12"
+      "review.js": "0.14.0",
+      "reviewjs-prh": "0.2.0"
     }
 }
