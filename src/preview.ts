@@ -6,7 +6,6 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as rx from 'rx-lite';
 import * as review from 'review.js';
-import * as reviewprh from 'reviewjs-prh';
 import { clearTimeout } from 'timers';
 
 const review_scheme = "review";
@@ -91,11 +90,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	return review.start (controller => {
 		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
 		var validators: review.Validator[];
-		try {
-			validators = [new review.DefaultValidator(), new reviewprh.TextValidator(prhFile)];
-		} catch (any) {
-			validators = [new review.DefaultValidator()];
-		}
+		validators = [new review.DefaultValidator()];
 		controller.initConfig ({
 			basePath: path.dirname (document.fileName),
 			validators: validators,

@@ -8,7 +8,7 @@ The extension features:
 
 ![Live preview on edits](docs/images/sshot-preview.png)
 
-- Diagnostic reports on save and preview (using [reviews-prh](https://github.com/vvakame/reviewjs-prh/)).
+- Diagnostic reports on save and preview. If you would also like proof-reading helper, use [vscode-prh-extension](https://github.com/prh/vscode-prh-extention).
 
 ![Diagnostic reports on save and preview](docs/images/sshot-diagnostic.png)
 
@@ -33,7 +33,6 @@ The primary license is MIT (see [LICENSE.md](LICENSE.md)). Note that this reposi
 
 - syntaxes/review.tmLanguage is taken from [yanzm/ReVIEW](https://github.com/yanzm/ReVIEW), Apache License Version 2.0
 - review.js, packaged in the binary distribution of this extension, is taken from [vvakame/review.js](https://github.com/vvakame/review.js), MIT License.
-- reviewjs-prh, packaged in the binary distribution of this extension, is taken from [vvakame/reviewjs-prh](https://github.com/vvakame/reviewjs-prh), MIT License.
 - and all the subsequent dependencies are packaged in the extension too.
 
 # Other projects

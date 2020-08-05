@@ -2,7 +2,7 @@
   "name": "language-review",
   "displayName": "Re:VIEW",
   "description": "Re:VIEW language Support for Visual Studio Code.",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "author": "Atsushi Eno",
   "license": "Apache License Version 2.0",
   "publisher": "atsushieno",
@@ -17,7 +17,8 @@
     "url": "https://github.com/atsushieno/vscode-language-review/issues"
   },
   "categories": [
-    "Languages"
+    "Languages",
+    "Linters"
   ],
   "homepage": "https://github.com/atsushieno/vscode-language-review/blob/master/README.md",
   "activationEvents": [
@@ -77,19 +78,17 @@
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
-    "compile": "tsc -watch -p ./",
-    "postinstall": "node ./node_modules/vscode/bin/install"
+    "compile": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "typescript": "^2.0.3",
-    "vscode": "^1.1.18",
-    "mocha": "^2.3.3",
-    "@types/node": "^8.0.0",
-    "@types/mocha": "^2.2.32"
+    "typescript": "^3.9.7",
+    "mocha": "^8.1.1",
+    "@types/node": "^14.0.27",
+    "@types/mocha": "^8.0.1",
+    "@types/vscode": "^1.47.0"
   },
   "dependencies": {
     "rx-lite": "4.0.8",
-    "review.js": "0.12.2",
-    "reviewjs-prh": "0.1.12"
+    "review.js": "0.16.0"
   }
 }
