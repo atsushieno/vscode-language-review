@@ -1,79 +1,95 @@
 {
-    "name": "language-review",
-    "displayName": "Re:VIEW",
-    "description": "Re:VIEW language Support for Visual Studio Code.",
-    "version": "0.5.1",
-    "author": "Atsushi Eno",
-    "license": "Apache License Version 2.0",
-    "publisher": "atsushieno",
-    "engines": {
-        "vscode": "^1.25.0"
-    },
-    "repository": {
-      "type": "git",
-      "url": "https://github.com/atsushieno/vscode-language-review.git"
-    },
-    "bugs": {
-      "url": "https://github.com/atsushieno/vscode-language-review/issues"
-    },
-    "categories": [
-      "Languages"
-    ],
-    "homepage": "https://github.com/atsushieno/vscode-language-review/blob/master/README.md",
-    "activationEvents": [
-      "onLanguage:review",
-      "onCommand:review.showPreview"
-    ],
-    "main": "./out/src/extension",
-    "contributes": {
-      "languages": [{
-          "id": "review",
-          "aliases": ["Re:VIEW", "review"],
-          "extensions": [".re"],
-          "configuration": "./review.configuration.json"
-      }],
-      "grammars": [{
-          "language": "review",
-          "scopeName": "text.review",
-          "path": "./syntaxes/review.tmLanguage"
-      }],
-      "commands": [{
-          "command": "review.showPreview",
-          "title": "Show preview",
-          "category": "review"
-        }, {
-          "command": "review.checkSyntax",
-          "title": "Check syntax",
-          "category": "review"
-      }],
-      "menus": {
-        "editor/title": [{
-            "when": "resourceLangId == review",
-            "command": "review.showPreview",
-            "group": "navigation"
-        }],
-        "explorer/context": [{
-            "when": "resourceLangId == review",
-            "command": "review.showPreview",
-            "group": "navigation"
-        }]
+  "name": "language-review",
+  "displayName": "Re:VIEW",
+  "description": "Re:VIEW language Support for Visual Studio Code.",
+  "version": "0.5.1",
+  "author": "Atsushi Eno",
+  "license": "Apache License Version 2.0",
+  "publisher": "atsushieno",
+  "engines": {
+    "vscode": "^1.25.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/atsushieno/vscode-language-review.git"
+  },
+  "bugs": {
+    "url": "https://github.com/atsushieno/vscode-language-review/issues"
+  },
+  "categories": [
+    "Languages"
+  ],
+  "homepage": "https://github.com/atsushieno/vscode-language-review/blob/master/README.md",
+  "activationEvents": [
+    "onLanguage:review",
+    "onCommand:review.showPreview"
+  ],
+  "main": "./out/src/extension",
+  "contributes": {
+    "languages": [
+      {
+        "id": "review",
+        "aliases": [
+          "Re:VIEW",
+          "review"
+        ],
+        "extensions": [
+          ".re"
+        ],
+        "configuration": "./review.configuration.json"
       }
-    },
-    "scripts": {
-      "vscode:prepublish": "tsc -p ./",
-      "compile": "tsc -watch -p ./",
-      "postinstall": "node ./node_modules/vscode/bin/install"
-    },
-    "devDependencies": {
-      "typescript": "^2.0.3",
-      "vscode": "^1.1.18",
-      "mocha": "^2.3.3",
-      "@types/node": "^8.0.0",
-      "@types/mocha": "^2.2.32"
-    },
-    "dependencies": {
-      "rx-lite": "4.0.8",
-      "review.js": "0.12.2",
-      "reviewjs-prh": "0.1.12"
+    ],
+    "grammars": [
+      {
+        "language": "review",
+        "scopeName": "text.review",
+        "path": "./syntaxes/review.tmLanguage"
+      }
+    ],
+    "commands": [
+      {
+        "command": "review.showPreview",
+        "title": "Show preview",
+        "category": "review"
+      },
+      {
+        "command": "review.checkSyntax",
+        "title": "Check syntax",
+        "category": "review"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "when": "resourceLangId == review",
+          "command": "review.showPreview",
+          "group": "navigation"
+        }
+      ],
+      "explorer/context": [
+        {
+          "when": "resourceLangId == review",
+          "command": "review.showPreview",
+          "group": "navigation"
+        }
+      ]
     }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install"
+  },
+  "devDependencies": {
+    "typescript": "^2.0.3",
+    "vscode": "^1.1.18",
+    "mocha": "^2.3.3",
+    "@types/node": "^8.0.0",
+    "@types/mocha": "^2.2.32"
+  },
+  "dependencies": {
+    "rx-lite": "4.0.8",
+    "review.js": "0.12.2",
+    "reviewjs-prh": "0.1.12"
+  }
 }
