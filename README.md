@@ -1,3 +1,7 @@
+# Important Updates on v0.6.0
+
+Version 0.6.0 drops the bundled support for [prh](https://github.com/prh) because there is now a standalone package for it. If you miss the validation feature, please install "prh" extension.
+
 # What is vscode-language-review?
 
 vscode-language-review is a [Visual Studio Code](https://github.com/Microsoft/vscode/) extension for [Re:VIEW](https://github.com/kmuto/review) markup language.
