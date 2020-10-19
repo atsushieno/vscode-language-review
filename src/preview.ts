@@ -163,7 +163,8 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 					function getLabelName (src: review.Symbol): string {
 						switch (src.node.ruleName) {
 							case review.RuleName.Headline:
-								return src.labelName;
+								const caption = src.node.toHeadline().caption.childNodes[0].toTextNode().text;
+								return caption === src.labelName ? src.labelName : `{${src.labelName}} ${caption}`;
 							case review.RuleName.Column:
 								return "[column] " + src.node.toColumn ().headline.caption.childNodes[0].toTextNode ().text;
 							default:
