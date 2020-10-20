@@ -5,7 +5,7 @@ import * as events from 'events';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as rx from 'rx-lite';
-import * as review from 'review.js';
+import * as review from 'review.js-vscode';
 import { clearTimeout } from 'timers';
 
 const review_scheme = "review";

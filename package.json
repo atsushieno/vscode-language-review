@@ -89,6 +89,6 @@
   },
   "dependencies": {
     "rx-lite": "4.0.8",
-    "review.js": "0.16.0"
+    "review.js-vscode": "0.18.0"
   }
 }
