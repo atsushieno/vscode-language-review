@@ -6,7 +6,9 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import * as rx from 'rx-lite';
 import * as review from 'review.js-vscode';
+import * as jsyaml from "js-yaml";
 import { clearTimeout } from 'timers';
+import { ConfigBook } from 'review.js-vscode/lib/controller/configRaw';
 
 const review_scheme = "review";
 
@@ -31,11 +33,13 @@ class ReviewSymbolProvider implements vscode.DocumentSymbolProvider, vscode.Disp
 }
 
 function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri: (...relPath: string[]) => vscode.Uri): Promise<string> {
+	const docFileName = path.basename(document.fileName);
+
 	return new Promise<string> ((resolve, rejected) => {
 		processDocument (document).then (
 			buffer => {
 				var result = "";
-				buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
+				buffer.allChunks.filter (c => c.name === docFileName).forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
 				if (result == "")
 					result = "Start writing Re:VIEW content with '= title' (top level header). Or if you have written contents but seeing this, check syntax errors.";
 				if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
@@ -89,15 +93,95 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 		return pos.character === 0 ? getEOLPosition (pos.line - 1) : new vscode.Position (pos.line, pos.character - 1);
 	}
 
+	function getChapters (catalogYaml: any | null): ConfigBook | null {
+		if (catalogYaml == null) {
+			return null;
+		}
+
+		const getStringArray =
+			function (obj: any, propertyName: string): string[] {
+				const property = obj [propertyName];
+				if (Array.isArray (property)) {
+					const result = <string[]>[];
+					for(const item of property) {
+						if (item == null) {
+							continue;
+						} else if (typeof item === 'string') {
+							// chapter
+							result.push (item);
+						} else {
+							// part
+							for(const partName in item) {
+								const part = item [partName];
+								for(const chapter of part) {
+									result.push (chapter);
+								}
+							}
+						}
+					}
+					return result;
+				} else if (typeof property === "object") {
+					let result = <string[]>[];
+					for (const p in property) {
+						result = result.concat (getStringArray (property, p));
+					}
+					return result;
+				} else if (property != null) {
+					return [property.toString ()];
+				}
+
+				return [];
+			};
+
+		return {
+			predef: getStringArray (catalogYaml, "predef").concat (getStringArray (catalogYaml, "PREDEF")).map (f => ({ file: f })),
+			contents: getStringArray (catalogYaml, "contents").concat (getStringArray (catalogYaml, "CHAPS")).map (f => ({ file: f })),
+			appendix: getStringArray (catalogYaml, "appendix").concat (getStringArray (catalogYaml, "APPENDIX")).map (f => ({ file: f })),
+			postdef: getStringArray (catalogYaml, "postdef").concat (getStringArray (catalogYaml, "POSTDEF")).map (f => ({ file: f }))
+		};
+	}
+
 	return review.start (controller => {
 		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
 		var validators: review.Validator[];
 		validators = [new review.DefaultValidator()];
+
+		const docFileName = path.basename (document.fileName);
+		const docDirName = path.dirname (document.fileName);
+		const docChapterName = path.basename (document.fileName, ".re");
+
+		const catalogYamlFileName = path.resolve (docDirName, "catalog.yml");
+		const books =
+			fs.existsSync (catalogYamlFileName) ?
+				getChapters (jsyaml.safeLoad (fs.readFileSync (catalogYamlFileName, "utf8"))) :
+				{
+					predef: [],
+					contents: [],
+					appendix: [],
+					postdef: []
+				};
+		if (books.predef.findIndex (x => x.file === docFileName) < 0 &&
+			books.contents.findIndex (x => {
+				if (typeof x === "string") {
+					return x === docFileName;
+				} else {
+					return x.file === docFileName;
+				}
+			}
+			) < 0 &&
+			books.appendix.findIndex (x => x.file === docFileName) < 0 &&
+			books.postdef.findIndex (x => x.file === docFileName) < 0) {
+			books.contents.push (<any>{ file: docFileName });
+		}
+
 		controller.initConfig ({
 			basePath: path.dirname (document.fileName),
 			validators: validators,
-			read: path => Promise.resolve(document.getText()),
-			write: (path, data) => Promise.resolve(void {}),
+			read: fileName =>
+				fileName === docFileName ?
+					Promise.resolve (document.getText ()) :
+					Promise.resolve (fs.readFileSync (path.resolve (docDirName, fileName), "utf8")),
+			write: (path, data) => Promise.resolve (void {}),
 			listener: {
 				// onAcceptables: ... ,
 				onSymbols: function (symbols) {
@@ -189,23 +273,43 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						children: [],
 						parent: undefined
 					};
-					organizeSymbols (root, symbols.filter (o => !o.node.isInlineElement() && (o.symbolName === "hd" || o.symbolName === "column")));
+					// filters symbols to contain only "current" document's
+					organizeSymbols (root, symbols.filter (o => o.chapter?.name == docFileName && !o.node.isInlineElement () && (o.symbolName === "hd" || o.symbolName === "column")));
 					document_symbols = root.children;
 				},
 				onReports: function (reports) {
-					var dc = Array.of<vscode.Diagnostic> ();
-					for (var i = 0; i < reports.length; i++) {
-						var loc = reports [i].nodes.length > 0 ? reports [i].nodes [0].location : null;
-						dc.push (new vscode.Diagnostic (locationToRange (loc), reports [i].message, reportLevelToSeverity (reports [i].level)));
+
+					// Organize report for chapters
+					const reportsPerFile = new Map<string, review.ProcessReport[]> ();
+					for (const report of reports) {
+						let reportsForFile = reportsPerFile.get (report.chapter.name);
+						if (reportsForFile == null) {
+							reportsForFile = [];
+							reportsPerFile.set (report.chapter.name, reportsForFile);
+						}
+
+						reportsForFile.push (report);
 					}
+
 					if (last_diagnostics != null)
 						last_diagnostics.dispose ();
 					last_diagnostics = vscode.languages.createDiagnosticCollection ("Re:VIEW validation");
-					last_diagnostics.set (document.uri, dc);
+
+					for (const kv of reportsPerFile) {
+						const file = kv [0];
+						const reportsForFile = kv [1];
+
+						var dc = Array.of<vscode.Diagnostic> ();
+						for (var i = 0; i < reportsForFile.length; i++) {
+							var loc = reportsForFile [i].nodes.length > 0 ? reportsForFile [i].nodes [0].location : null;
+							dc.push (new vscode.Diagnostic (locationToRange (loc), reportsForFile [i].message, reportLevelToSeverity (reportsForFile [i].level)));
+						}
+						last_diagnostics.set (vscode.Uri.joinPath (document.uri, `../${file}`), dc);
+					}
 				},
 			},
 			builders: [ new review.HtmlBuilder (false) ],
-			book: { contents: [{file: path.basename (document.fileName)}] }
+			book: books
 		});
 	});
 }
