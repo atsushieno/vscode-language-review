@@ -36,6 +36,8 @@ function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri:
 			buffer => {
 				var result = "";
 				buffer.allChunks.forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
+				if (result == "")
+					result = "Start writing Re:VIEW content with '= title' (top level header). Or if you have written contents but seeing this, check syntax errors.";
 				if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
 					result = "<html><head><base href=\"" + document.fileName + "\" />" + getStyleTag() + "</head><body>" + result + "</body></html>";
 				return resolve (result);
