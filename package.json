@@ -2,8 +2,8 @@
   "name": "language-review",
   "displayName": "Re:VIEW",
   "description": "Re:VIEW language Support for Visual Studio Code.",
-  "version": "0.6.2",
-  "author": "Atsushi Eno",
+  "version": "0.7.0",
+  "author": "Atsushi Eno, vscode-language-review contributors",
   "license": "Apache License Version 2.0",
   "publisher": "atsushieno",
   "engines": {
