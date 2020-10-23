@@ -285,11 +285,16 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 						} // getCaptionText()
 
 						switch (src.node.ruleName) {
-							case review.RuleName.Headline:
+							case review.RuleName.Headline: {
 								const caption = getCaptionText (src.node.toHeadline ().caption);
 								return caption === src.labelName ? src.labelName : `{${src.labelName}} ${caption}`;
-							case review.RuleName.Column:
-								return "[column] " + getCaptionText (src.node.toColumn ().headline.caption);
+							}
+							case review.RuleName.Column: {
+								const column = src.node.toColumn ();
+								const caption = getCaptionText (column.headline.caption);
+								const label = column.headline.label.arg;
+								return caption === label ? caption : `{${label}} ${caption}`;
+							}
 							default:
 								return undefined;
 						}
