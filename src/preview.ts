@@ -292,8 +292,8 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 							case review.RuleName.Column: {
 								const column = src.node.toColumn ();
 								const caption = getCaptionText (column.headline.caption);
-								const label = column.headline.label.arg;
-								return caption === label ? caption : `{${label}} ${caption}`;
+								const label = column.headline.label?.arg;
+								return (label == null || caption === label) ? caption : `{${label}} ${caption}`;
 							}
 							default:
 								return undefined;
