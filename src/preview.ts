@@ -6,6 +6,7 @@ import * as vscode from 'vscode';
 import * as review from 'review.js-vscode';
 import * as jsyaml from "js-yaml";
 import { ConfigBook } from 'review.js-vscode/lib/controller/configRaw';
+import { NodeSyntaxTree } from 'review.js-vscode';
 
 const review_scheme = "review";
 
@@ -244,12 +245,51 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 					}
 
 					function getLabelName (src: review.Symbol): string {
+
+						function getCaptionText (caption: NodeSyntaxTree): string {
+
+							function processInlineElementContent(content: NodeSyntaxTree, tokens: string[]) {
+								// InlineElementContent should have only 1 child node
+								if (content.childNodes.length === 1 ) {
+									// the child should be InlineElementContent or InlineElementContentText
+									if (content.childNodes [0].isTextNode ()) {
+										tokens.push (content.childNodes [0].toTextNode ().text);
+									} else if (content.childNodes [0].isNode ()){
+										// InlineElementContent
+										processInlineElementContent(content.childNodes [0].toNode (), tokens);
+									}
+								}
+							} // processInlineElementContent()
+
+							const tokens = [];
+							for(const child of caption.childNodes) {
+								if (child.isTextNode ()) {
+									tokens.push (child.toTextNode ().text);
+								} else if (child.isInlineElement ()) {
+									const asInline = child.toInlineElement ();
+									// InlineElement should have only 1 child node
+									if (asInline.childNodes.length === 1 && asInline.childNodes [0].isNode ()) {
+										// InlineElement's child is InlineElementContents, which have one or more InlineElementContent
+										for(const content of asInline.childNodes) {
+											if (!content. isNode()) {
+												// Skip invalid InlineElementContent
+												continue;
+											}
+
+											processInlineElementContent (content.toNode (), tokens);
+										}
+									}
+								}
+							}
+							return tokens.join ("");
+						} // getCaptionText()
+
 						switch (src.node.ruleName) {
 							case review.RuleName.Headline:
-								const caption = src.node.toHeadline().caption.childNodes[0].toTextNode().text;
+								const caption = getCaptionText (src.node.toHeadline ().caption);
 								return caption === src.labelName ? src.labelName : `{${src.labelName}} ${caption}`;
 							case review.RuleName.Column:
-								return "[column] " + src.node.toColumn ().headline.caption.childNodes[0].toTextNode ().text;
+								return "[column] " + getCaptionText (src.node.toColumn ().headline.caption);
 							default:
 								return undefined;
 						}
