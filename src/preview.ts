@@ -1,13 +1,10 @@
 'use strict';
 
 import * as fs from 'fs';
-import * as events from 'events';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as rx from 'rx-lite';
 import * as review from 'review.js-vscode';
 import * as jsyaml from "js-yaml";
-import { clearTimeout } from 'timers';
 import { ConfigBook } from 'review.js-vscode/lib/controller/configRaw';
 
 const review_scheme = "review";
@@ -233,7 +230,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 								p = p.parent;
 							}
 						}
-					}
+					} // organizeSymbols()
 
 					function extractLevel (src: review.Symbol): number {
 						switch (src.node.ruleName) {
@@ -256,7 +253,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 							default:
 								return undefined;
 						}
-					}
+					} // getLabelName()
 
 					function getLabelDetail (src: review.Symbol): string {
 						switch (src.node.ruleName) {
