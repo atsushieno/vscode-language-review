@@ -139,6 +139,11 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 		};
 	}
 
+	const options = {
+		draft: false,
+		inproc: true
+	};
+
 	return review.start (controller => {
 		var prhFile = path.join (path.dirname (document.fileName), "prh.yml");
 		var validators: review.Validator[];
@@ -146,7 +151,6 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 
 		const docFileName = path.basename (document.fileName);
 		const docDirName = path.dirname (document.fileName);
-		const docChapterName = path.basename (document.fileName, ".re");
 
 		const catalogYamlFileName = path.resolve (docDirName, "catalog.yml");
 		const books =
@@ -353,7 +357,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 			builders: [ new review.HtmlBuilder (false) ],
 			book: books
 		});
-	});
+	}, options);
 }
 
 var previews = new Map<string,vscode.WebviewPanel> ();
