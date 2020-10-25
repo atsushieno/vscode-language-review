@@ -30,6 +30,20 @@ class ReviewSymbolProvider implements vscode.DocumentSymbolProvider, vscode.Disp
 	}
 }
 
+interface Configuration {
+	readonly draftMode: boolean;
+}
+
+function getConfiguration () : Configuration {
+	// Specify first segment of properties which is defined in package.json/contributes/configuration
+	const vsconfig = vscode.workspace.getConfiguration ("languageReview");
+
+	// Specify remaining segments of properties here:
+	return {
+		draftMode: vsconfig.get<boolean> ("preview.draftMode") ?? false,
+	}
+}
+
 function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri: (...relPath: string[]) => vscode.Uri): Promise<string> {
 	const docFileName = path.basename(document.fileName);
 
@@ -140,7 +154,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 	}
 
 	const options = {
-		draft: false,
+		draft: getConfiguration().draftMode,
 		inproc: true
 	};
 
