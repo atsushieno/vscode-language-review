@@ -32,6 +32,7 @@ class ReviewSymbolProvider implements vscode.DocumentSymbolProvider, vscode.Disp
 
 interface Configuration {
 	readonly draftMode: boolean;
+	readonly styleSheet: string;
 }
 
 function getConfiguration () : Configuration {
@@ -41,6 +42,7 @@ function getConfiguration () : Configuration {
 	// Specify remaining segments of properties here:
 	return {
 		draftMode: vsconfig.get<boolean> ("preview.draftMode") ?? false,
+		styleSheet: vsconfig.get<string> ("preview.stylesheet") ?? "stylesheet.css",
 	}
 }
 
@@ -54,8 +56,16 @@ function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri:
 				buffer.allChunks.filter (c => c.name === docFileName).forEach (chunk => chunk.builderProcesses.forEach (proc => result += proc.result));
 				if (result == "")
 					result = "Start writing Re:VIEW content with '= title' (top level header). Or if you have written contents but seeing this, check syntax errors.";
-				if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE"))
-					result = "<html><head><base href=\"" + document.fileName + "\" />" + getStyleTag() + "</head><body>" + result + "</body></html>";
+				if (!result.startsWith ("<html") && !result.startsWith ("<!DOCTYPE")) {
+					// Uses basename to prevent directory traversal
+					const styleSheetUri = path.join (path.dirname (document.fileName), path.basename (getConfiguration ().styleSheet));
+					if (fs.existsSync (styleSheetUri)) {
+						const css = fs.readFileSync (styleSheetUri, "utf-8")
+						result = `<html><head><base href="${document.fileName}" /><style type="text/css"><!--\n ${css} \n--></style></head><body>${result}</body></html>`;
+					} else {
+						result = `<html><head><base href="${document.fileName}" />${getStyleTag()}</head><body>${result}</body></html>`;
+					}
+				}
 				return resolve (result);
 			},
 			reason => rejected (reason)

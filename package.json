@@ -83,6 +83,11 @@
             "markdownDescription": "Enable 'draft' mode which shows contents of inline comment (`@<comment>{...}`) and block comment (`//comment{...//}`).",
             "type": "boolean",
             "default": false
+          },
+          "languageReview.preview.stylesheet": {
+            "description": "File name or path of css file to be applied to preview window.",
+            "type": "string",
+            "default": "stylesheet.css"
           }
         }
       }
