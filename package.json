@@ -74,7 +74,19 @@
           "group": "navigation"
         }
       ]
-    }
+    },
+    "configuration":[
+      {
+        "title": "Re:VIEW",
+        "properties": {
+          "languageReview.preview.draftMode": {
+            "markdownDescription": "Enable 'draft' mode which shows contents of inline comment (`@<comment>{...}`) and block comment (`//comment{...//}`).",
+            "type": "boolean",
+            "default": false
+          }
+        }
+      }
+    ]
   },
   "scripts": {
     "vscode:prepublish": "tsc -p ./",
