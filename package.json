@@ -75,7 +75,7 @@
         }
       ]
     },
-    "configuration":[
+    "configuration": [
       {
         "title": "Re:VIEW",
         "properties": {
@@ -84,8 +84,8 @@
             "type": "boolean",
             "default": false
           },
-          "languageReview.preview.stylesheet": {
-            "description": "File name or path of css file to be applied to preview window.",
+          "languageReview.experimentalFeatures.preview.stylesheet": {
+            "description": "[Advanced option]\nFile name or path of css file to be applied to preview window.\nNote that this is 'alpha' feature, so subject to change in future release.",
             "type": "string",
             "default": "stylesheet.css"
           }
