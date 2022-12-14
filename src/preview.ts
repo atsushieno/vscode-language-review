@@ -50,6 +50,9 @@ function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri:
 	const docFileName = path.basename(document.fileName);
 
 	return new Promise<string> ((resolve, rejected) => {
+		var styleFile = path.join(path.dirname(document.fileName), 'style.css');
+		var getStyleTag = (): string => `<link rel="stylesheet" type="text/css" href="${getAssetUri(styleFile)}">`;
+
 		processDocument (document).then (
 			buffer => {
 				var result = "";
@@ -61,17 +64,15 @@ function convert_review_doc_to_html (document: vscode.TextDocument, getAssetUri:
 					const styleSheetUri = path.join (path.dirname (document.fileName), path.basename (getConfiguration ().styleSheet));
 					if (fs.existsSync (styleSheetUri)) {
 						const css = fs.readFileSync (styleSheetUri, "utf-8")
-						result = `<html><head><base href="${document.fileName}" /><style type="text/css"><!--\n ${css} \n--></style></head><body>${result}</body></html>`;
+						result = `<html><head><base href="${getAssetUri(document.fileName)}" /><style type="text/css"><!--\n ${css} \n--></style></head><body>${result}</body></html>`;
 					} else {
-						result = `<html><head><base href="${document.fileName}" />${getStyleTag()}</head><body>${result}</body></html>`;
+						result = `<html><head><base href="${getAssetUri(document.fileName)}" />${getStyleTag()}</head><body>${result}</body></html>`;
 					}
 				}
 				return resolve (result);
 			},
 			reason => rejected (reason)
 		);
-
-		var getStyleTag = (): string => `<link rel="stylesheet" type="text/css" href="${getAssetUri('media', 'style.css')}">`;
 	});
 }
 
@@ -179,7 +180,7 @@ function processDocument (document: vscode.TextDocument): Promise<review.Book> {
 		const catalogYamlFileName = path.resolve (docDirName, "catalog.yml");
 		const books =
 			fs.existsSync (catalogYamlFileName) ?
-				getChapters (jsyaml.safeLoad (fs.readFileSync (catalogYamlFileName, "utf8"))) :
+				getChapters (jsyaml.load (fs.readFileSync (catalogYamlFileName, "utf8"))) :
 				{
 					predef: [],
 					contents: [],
@@ -393,11 +394,19 @@ function startPreview (uri: vscode.Uri, context: vscode.ExtensionContext) {
 		}
 	}
 
-	var webView = vscode.window.createWebviewPanel ('vscode-language-review', "[preview]" + path.basename(uri.path), vscode.ViewColumn.Two);
+	var localResRoot = vscode.Uri.file(path.dirname(uri.fsPath));
+	var webView = vscode.window.createWebviewPanel ('vscode-language-review', "[preview]" + path.basename(uri.path), vscode.ViewColumn.Two,
+		{
+			localResourceRoots: [localResRoot]
+		});
 	previews.set(uri.fsPath, webView);
 	var doc = vscode.workspace.textDocuments.find((d,_,__) => d.uri.fsPath == uri.fsPath);
-	var getAssetUri = (...relPath: string[]) =>
-	    vscode.Uri.file (path.join (context.extensionPath, ...relPath)).with ({ scheme: 'vscode-resource' });
+	var getAssetUri = (...relPath: string[]) => {
+		var p = path.join (...relPath);
+		if (!path.isAbsolute(p))
+			p = path.join (context.extensionPath, p);
+		return webView.webview.asWebviewUri (vscode.Uri.file (p));
+	}
 	convert_review_doc_to_html(doc, getAssetUri).then (
 		successResult => webView.webview.html = successResult,
 		failureReason => webView.webview.html = failureReason);

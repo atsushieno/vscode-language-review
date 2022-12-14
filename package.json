@@ -2,12 +2,12 @@
   "name": "language-review",
   "displayName": "Re:VIEW",
   "description": "Re:VIEW language Support for Visual Studio Code.",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "author": "Atsushi Eno, vscode-language-review contributors",
   "license": "Apache License Version 2.0",
   "publisher": "atsushieno",
   "engines": {
-    "vscode": "^1.47.0"
+    "vscode": "^1.60.0"
   },
   "repository": {
     "type": "git",
@@ -98,15 +98,15 @@
     "compile": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "typescript": "^3.9.7",
-    "mocha": "^8.1.1",
-    "@types/node": "^14.0.27",
-    "@types/mocha": "^8.0.1",
-    "@types/vscode": "^1.47.0"
+    
+    "mocha": "^10.2.0",
+    "@types/node": "^18.11.4",
+    "@types/mocha": "^10.0.1",
+    "@types/vscode": "^1.60.0"
   },
   "dependencies": {
     "rx-lite": "4.0.8",
     "review.js-vscode": "0.19.2",
-    "js-yaml": "^3.13.0"
+    "js-yaml": "^4.1.0"
   }
 }
