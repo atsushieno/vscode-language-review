@@ -3,10 +3,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as review from 'review.js-vscode';
+import * as review from '@bufferings/review.js-vscode';
 import * as jsyaml from "js-yaml";
-import { ConfigBook } from 'review.js-vscode/lib/controller/configRaw';
-import { NodeSyntaxTree } from 'review.js-vscode';
+import { ConfigBook } from '@bufferings/review.js-vscode/lib/controller/configRaw';
+import { NodeSyntaxTree } from '@bufferings/review.js-vscode';
 
 const review_scheme = "review";
 
