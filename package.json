@@ -98,14 +98,14 @@
     "compile": "tsc -watch -p ./"
   },
   "devDependencies": {
-    "@types/mocha": "^10.0.1",
+    "mocha": "^10.2.0",
     "@types/node": "^18.11.4",
-    "@types/vscode": "^1.60.0",
-    "mocha": "^10.2.0"
+    "@types/mocha": "^10.0.1",
+    "@types/vscode": "^1.60.0"
   },
   "dependencies": {
-    "@bufferings/review.js-vscode": "^0.19.25",
-    "js-yaml": "^4.1.0",
-    "rx-lite": "4.0.8"
+    "rx-lite": "4.0.8",
+    "review.js-vscode": "0.20.0",
+    "js-yaml": "^4.1.0"
   }
 }
