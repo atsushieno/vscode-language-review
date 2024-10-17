@@ -97,7 +97,7 @@
     "mocha": "^10.2.0",
     "@types/node": "^22.7.6",
     "@types/mocha": "^10.0.9",
-    "@types/vscode": "^1.94.0"
+    "@types/vscode": "^1.75.0"
   },
   "dependencies": {
     "rx-lite": "4.0.8",
