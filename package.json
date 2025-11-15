@@ -102,6 +102,6 @@
   "dependencies": {
     "rx-lite": "4.0.8",
     "review.js-vscode": "0.20.0",
-    "js-yaml": "^4.1.0"
+    "js-yaml": "^4.1.1"
   }
 }
